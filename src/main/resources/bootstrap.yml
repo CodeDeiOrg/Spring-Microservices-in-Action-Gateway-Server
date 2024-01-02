@@ -10,3 +10,4 @@ logging:
     com.netflix: WARN
     org.springframework.web: WARN
     com.library: DEBUG
+    org.springframework.cloud.gateway: DEBUG
