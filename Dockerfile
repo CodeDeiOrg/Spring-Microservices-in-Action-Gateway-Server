@@ -1,28 +1,20 @@
-#stage 1
-#Start with a base image containing Java runtime
-FROM openjdk:17-slim AS build
-
-# The application's jar file
+# Stage 1: Extract layers from the Spring Boot fat jar
+FROM eclipse-temurin:25-jdk AS builder
+WORKDIR /application
 ARG JAR_FILE
+COPY ${JAR_FILE} application.jar
+RUN java -Djarmode=layertools -jar application.jar extract
 
-# Add the application's jar to the container
-COPY ${JAR_FILE} app.jar
-
-#unpackage jar file
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf /app.jar)
-
-#stage 2
-#Same Java runtime
-FROM openjdk:17-slim
-
-#Add volume pointing to /tmp
+# Stage 2: Runtime image using JRE (smaller than JDK)
+FROM eclipse-temurin:25-jre
+WORKDIR /application
 VOLUME /tmp
 
-#Copy unpackaged application to new container
-ARG DEPENDENCY=/target/dependency
-COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
-COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
-COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
+# Copy layers in order from least-changed to most-changed
+# Docker caches each COPY as a separate layer
+COPY --from=builder /application/dependencies/ ./
+COPY --from=builder /application/spring-boot-loader/ ./
+COPY --from=builder /application/snapshot-dependencies/ ./
+COPY --from=builder /application/application/ ./
 
-#execute the application
-ENTRYPOINT ["java","-cp","app:app/lib/*","com.library.gatewayserver.ApiGatewayServerApplication"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

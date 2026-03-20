@@ -1,8 +1,7 @@
 package com.library.gatewayserver.filters;
 
-import brave.Span;
-import brave.Tracer;
-import brave.propagation.TraceContext;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -28,7 +27,7 @@ public class TrackingFilter implements GlobalFilter {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         final String traceId = Optional.ofNullable(tracer.currentSpan())
                 .map(Span::context)
-                .map(TraceContext::traceIdString)
+                .map(context -> context.traceId())
                 .orElse("null");
 
         logger.debug("Trace id found in tracking filter GATEWAY: {}. ", traceId);

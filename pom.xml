@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.1.5</version>
+		<version>4.0.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.library</groupId>
@@ -14,9 +14,9 @@
 	<name>Api Gateway Server</name>
 	<description>Api Gateway Server</description>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>25</java.version>
 		<docker.image.prefix>ionescuionut</docker.image.prefix>
-		<spring-cloud.version>2022.0.4</spring-cloud.version>
+		<spring-cloud.version>2025.1.1</spring-cloud.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -29,20 +29,16 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-gateway</artifactId>
+			<artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-bootstrap</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>net.logstash.logback</groupId>
 			<artifactId>logstash-logback-encoder</artifactId>
-			<version>7.4</version>
+			<version>9.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.micrometer</groupId>
@@ -89,26 +85,30 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<!-- This plugin is used to create a docker image and publish the image to docker hub-->
+			<!-- Build and push Docker image using the local Dockerfile -->
 			<plugin>
-				<groupId>com.spotify</groupId>
-				<artifactId>dockerfile-maven-plugin</artifactId>
-				<version>1.4.13</version>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.46.0</version>
 				<configuration>
-					<useMavenSettingsForAuth>true</useMavenSettingsForAuth>
-					<repository>registry.hub.docker.com/${docker.image.prefix}/${project.artifactId}</repository>
-					<tag>${project.version}</tag>
-					<buildArgs>
-						<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
-					</buildArgs>
+					<images>
+						<image>
+							<name>${docker.image.prefix}/${project.artifactId}:${project.version}</name>
+							<build>
+								<dockerFileDir>${project.basedir}</dockerFileDir>
+								<args>
+									<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+								</args>
+							</build>
+						</image>
+					</images>
 				</configuration>
 				<executions>
 					<execution>
-						<id>default</id>
+						<id>build-image</id>
 						<phase>install</phase>
 						<goals>
 							<goal>build</goal>
-							<goal>push</goal>
 						</goals>
 					</execution>
 				</executions>
