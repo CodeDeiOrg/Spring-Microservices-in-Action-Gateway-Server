@@ -4,13 +4,7 @@ spring:
   cloud:
     config:
       enabled: false
-    gateway:
-      routes: []
 
 eureka:
   client:
-    enabled: false
-
-management:
-  tracing:
     enabled: false

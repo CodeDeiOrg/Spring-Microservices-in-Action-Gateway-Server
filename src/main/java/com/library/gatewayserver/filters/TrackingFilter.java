@@ -1,7 +1,9 @@
 package com.library.gatewayserver.filters;
 
 import io.micrometer.tracing.Span;
+import io.micrometer.tracing.TraceContext;
 import io.micrometer.tracing.Tracer;
+import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -13,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 
+@NullMarked
 @Order(1)
 @Component
 public class TrackingFilter implements GlobalFilter {
@@ -27,7 +30,7 @@ public class TrackingFilter implements GlobalFilter {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         final String traceId = Optional.ofNullable(tracer.currentSpan())
                 .map(Span::context)
-                .map(context -> context.traceId())
+                .map(TraceContext::traceId)
                 .orElse("null");
 
         logger.debug("Trace id found in tracking filter GATEWAY: {}. ", traceId);
