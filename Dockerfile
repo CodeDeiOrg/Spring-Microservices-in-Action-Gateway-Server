@@ -1,20 +1,30 @@
-# Stage 1: Extract layers from the Spring Boot fat jar
-FROM eclipse-temurin:25-jdk AS builder
-WORKDIR /application
-ARG JAR_FILE
-COPY ${JAR_FILE} application.jar
-RUN java -Djarmode=layertools -jar application.jar extract
+# syntax=docker/dockerfile:1
+
+# Stage 1: build from source and extract layers from the resulting jar
+FROM eclipse-temurin:25-jdk AS build
+WORKDIR /workspace
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2,id=maven-repo \
+    ./mvnw clean package -DskipTests -Ddocker.skip=true -B
+RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 
 # Stage 2: Runtime image using JRE (smaller than JDK)
 FROM eclipse-temurin:25-jre
+
+# eclipse-temurin runs as root by default — drop to a dedicated non-root user
+RUN groupadd --system spring && useradd --system --gid spring --no-create-home spring
+
 WORKDIR /application
-VOLUME /tmp
 
 # Copy layers in order from least-changed to most-changed
 # Docker caches each COPY as a separate layer
-COPY --from=builder /application/dependencies/ ./
-COPY --from=builder /application/spring-boot-loader/ ./
-COPY --from=builder /application/snapshot-dependencies/ ./
-COPY --from=builder /application/application/ ./
+COPY --from=build --chown=spring:spring /workspace/extracted/dependencies/ ./
+COPY --from=build --chown=spring:spring /workspace/extracted/spring-boot-loader/ ./
+COPY --from=build --chown=spring:spring /workspace/extracted/snapshot-dependencies/ ./
+COPY --from=build --chown=spring:spring /workspace/extracted/application/ ./
+
+USER spring:spring
 
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

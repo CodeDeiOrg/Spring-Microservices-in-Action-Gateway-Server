@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.4</version>
+		<version>4.0.7</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.library</groupId>
@@ -16,7 +16,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<docker.image.prefix>ionescuionut</docker.image.prefix>
-		<spring-cloud.version>2025.1.1</spring-cloud.version>
+		<spring-cloud.version>2025.1.2</spring-cloud.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -52,6 +52,22 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-webtestclient</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.wiremock.integrations</groupId>
+			<artifactId>wiremock-spring-boot</artifactId>
+			<version>4.2.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 		</dependency>
@@ -74,36 +90,57 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<!-- Build and push Docker image using the local Dockerfile -->
-			<plugin>
-				<groupId>io.fabric8</groupId>
-				<artifactId>docker-maven-plugin</artifactId>
-				<version>0.46.0</version>
-				<configuration>
-					<images>
-						<image>
-							<name>${docker.image.prefix}/${project.artifactId}:${project.version}</name>
-							<build>
-								<dockerFileDir>${project.basedir}</dockerFileDir>
-								<args>
-									<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
-								</args>
-							</build>
-						</image>
-					</images>
-				</configuration>
-				<executions>
-					<execution>
-						<id>build-image</id>
-						<phase>install</phase>
-						<goals>
-							<goal>build</goal>
-							<goal>push</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Opt-in only: `mvn install -Pdocker-release` builds the image and pushes it to Docker Hub.
+		     Not part of the default build so a routine `mvn install` never touches Docker or pushes anything. -->
+		<profile>
+			<id>docker-release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>io.fabric8</groupId>
+						<artifactId>docker-maven-plugin</artifactId>
+						<version>0.46.0</version>
+						<configuration>
+							<images>
+								<image>
+									<name>${docker.image.prefix}/${project.artifactId}:${project.version}</name>
+									<build>
+										<dockerFileDir>${project.basedir}</dockerFileDir>
+										<args>
+											<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+										</args>
+									</build>
+								</image>
+							</images>
+						</configuration>
+						<executions>
+							<execution>
+								<id>remove-image</id>
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>remove</goal>
+								</goals>
+								<configuration>
+									<removeMode>all</removeMode>
+								</configuration>
+							</execution>
+							<execution>
+								<id>build-image</id>
+								<phase>install</phase>
+								<goals>
+									<goal>build</goal>
+									<goal>push</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
