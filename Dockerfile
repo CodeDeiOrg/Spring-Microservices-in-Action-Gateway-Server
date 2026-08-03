@@ -6,8 +6,7 @@ WORKDIR /workspace
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2,id=maven-repo \
-    ./mvnw clean package -DskipTests -Ddocker.skip=true -B
+RUN ./mvnw clean package -DskipTests -Ddocker.skip=true -B
 RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 
 # Stage 2: Runtime image using JRE (smaller than JDK)
